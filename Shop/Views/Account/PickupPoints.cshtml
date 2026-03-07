@@ -1,0 +1,77 @@
+@model IEnumerable<Shop.Models.PickupPoint>
+
+@{
+    ViewData["Title"] = "Пункты самовывоза";
+}
+
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Пункты самовывоза</h2>
+        <div class="btn-group">
+            <a asp-action="Admin" class="btn btn-outline-dark">Товары</a>
+            <a asp-controller="Account" asp-action="AdminUsers" class="btn btn-outline-dark">Пользователи</a>
+            <a asp-action="AdminOrders" class="btn btn-outline-dark">Заказы</a>
+            <a asp-action="AddPickupPoint" class="btn btn-dark">+ Добавить пункт</a>
+        </div>
+    </div>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="table-responsive shadow-sm">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Название</th>
+                    <th>Адрес</th>
+                    <th>Часы работы</th>
+                    <th>Телефон</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var point in Model)
+                {
+                    <tr>
+                        <td>@point.Id</td>
+                        <td>@point.Name</td>
+                        <td>@point.Address</td>
+                        <td>@(point.WorkingHours ?? "—")</td>
+                        <td>@(point.Phone ?? "—")</td>
+                        <td>
+                            @if (point.IsActive)
+                            {
+                                <span class="badge bg-success">Активен</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Неактивен</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a asp-action="EditPickupPoint" asp-route-id="@point.Id" class="btn btn-sm btn-warning">Изменить</a>
+                                <form asp-action="DeletePickupPoint" method="post" class="d-inline"
+                                      onsubmit="return confirm('Удалить пункт @point.Name?')">
+                                    <input type="hidden" name="id" value="@point.Id" />
+                                    <button class="btn btn-sm btn-danger">Удалить</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted">Пункты самовывоза не добавлены</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

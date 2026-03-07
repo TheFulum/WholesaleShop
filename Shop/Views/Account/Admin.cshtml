@@ -1,4 +1,4 @@
-﻿@model IEnumerable<Shop.Models.Product>
+@model IEnumerable<Shop.Models.Product>
 
 @{
     ViewData["Title"] = "Управление товарами";
@@ -11,6 +11,7 @@
         <div class="btn-group">
             <a asp-controller="Account" asp-action="AdminUsers" class="btn btn-outline-dark">Пользователи</a>
             <a asp-controller="Account" asp-action="AdminOrders" class="btn btn-outline-dark">Заказы</a>
+            <a asp-controller="Account" asp-action="PickupPoints" class="btn btn-outline-dark">Пункты выдачи</a>
             <a asp-controller="Account" asp-action="AddProduct" class="btn btn-dark">Добавить товар</a>
         </div>
     </div>
@@ -92,13 +93,13 @@
                                 <label class="form-label">Цена от</label>
                                 <input type="number" name="minPrice" class="form-control" placeholder="Мин. цена"
                                        value="@ViewBag.MinPrice" min="@ViewBag.MinPriceRange" max="@ViewBag.MaxPriceRange"
-                                       step="0.01" />
+                                       step="0.01" id="minPriceInput" />
                             </div>
                             <div class="flex-grow-1">
                                 <label class="form-label">Цена до</label>
                                 <input type="number" name="maxPrice" class="form-control" placeholder="Макс. цена"
                                        value="@ViewBag.MaxPrice" min="@ViewBag.MinPriceRange" max="@ViewBag.MaxPriceRange"
-                                       step="0.01" />
+                                       step="0.01" id="maxPriceInput" />
                             </div>
                         </div>
                         <button type="submit" class="btn btn-dark w-100">Применить</button>
@@ -149,8 +150,12 @@
                                         </button>
                                         <form asp-action="EditProduct" asp-controller="Account" method="get">
                                             <input type="hidden" name="id" value="@product.Id" />
-                                            <button type="submit" class="btn btn-sm btn-warning">Изменить</button>
+                                            <button type="submit" class="btn btn-sm btn-warning w-100">Изменить</button>
                                         </form>
+                                        <a asp-action="WholesaleTiers" asp-controller="Account" asp-route-productId="@product.Id"
+                                           class="btn btn-sm btn-info">
+                                            📦 Опт. скидки
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
@@ -198,7 +203,6 @@
             document.getElementById('deleteProductId').value = productId;
         }
 
-
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.getElementById('filterForm');
             const nameInput = document.getElementById('nameInput');
@@ -207,23 +211,8 @@
             const maxPriceInput = document.getElementById('maxPriceInput');
 
             [nameInput, categoryInput, minPriceInput, maxPriceInput].forEach(input => {
-                input.addEventListener('change', function () {
-                    form.submit();
-                });
-            });
-
-            minPriceInput.addEventListener('change', function () {
-                if (parseFloat(this.value) > parseFloat(maxPriceInput.value)) {
-                    maxPriceInput.value = this.value;
-                }
-            });
-
-            maxPriceInput.addEventListener('change', function () {
-                if (parseFloat(this.value) < parseFloat(minPriceInput.value)) {
-                    minPriceInput.value = this.value;
-                }
+                if (input) input.addEventListener('change', function () { form.submit(); });
             });
         });
-
     </script>
 }

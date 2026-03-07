@@ -32,5 +32,7 @@ namespace Shop.Models
         public double AverageRating { get; set; } = 0;
 
         public int TotalVotes { get; set; } = 0;
+
+        public ICollection<WholesaleTier> WholesaleTiers { get; set; } = new List<WholesaleTier>();
     }
 }

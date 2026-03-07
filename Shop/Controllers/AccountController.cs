@@ -762,6 +762,123 @@ namespace Shop.Controllers
         }
 
 
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public IActionResult WholesaleTiers(int productId)
+        {
+            var product = _context.Products
+                .Include(p => p.WholesaleTiers)
+                .FirstOrDefault(p => p.Id == productId);
+
+            if (product == null) return NotFound();
+
+            ViewBag.ProductName = product.Name;
+            ViewBag.ProductId = productId;
+            return View(product.WholesaleTiers.OrderBy(t => t.MinQuantity).ToList());
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public IActionResult AddWholesaleTier(int productId, int minQuantity, int discountPercent)
+        {
+            _context.WholesaleTiers.Add(new WholesaleTier
+            {
+                ProductId = productId,
+                MinQuantity = minQuantity,
+                DiscountPercent = discountPercent
+            });
+            _context.SaveChanges();
+            return RedirectToAction("WholesaleTiers", new { productId });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public IActionResult DeleteWholesaleTier(int id, int productId)
+        {
+            var tier = _context.WholesaleTiers.Find(id);
+            if (tier != null)
+            {
+                _context.WholesaleTiers.Remove(tier);
+                _context.SaveChanges();
+            }
+            return RedirectToAction("WholesaleTiers", new { productId });
+        }
+
+        // ==================== ПУНКТЫ САМОВЫВОЗА ====================
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> PickupPoints()
+        {
+            var points = await _context.PickupPoints.OrderBy(p => p.Name).ToListAsync();
+            return View(points);
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public IActionResult AddPickupPoint()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddPickupPoint(PickupPoint point)
+        {
+            if (!ModelState.IsValid) return View(point);
+
+            _context.PickupPoints.Add(point);
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Пункт самовывоза добавлен.";
+            return RedirectToAction("PickupPoints");
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> EditPickupPoint(int id)
+        {
+            var point = await _context.PickupPoints.FindAsync(id);
+            if (point == null) return NotFound();
+            return View(point);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditPickupPoint(int id, PickupPoint point)
+        {
+            if (id != point.Id) return BadRequest();
+            if (!ModelState.IsValid) return View(point);
+
+            var existing = await _context.PickupPoints.FindAsync(id);
+            if (existing == null) return NotFound();
+
+            existing.Name = point.Name;
+            existing.Address = point.Address;
+            existing.WorkingHours = point.WorkingHours;
+            existing.Phone = point.Phone;
+            existing.IsActive = point.IsActive;
+
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Пункт самовывоза обновлён.";
+            return RedirectToAction("PickupPoints");
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeletePickupPoint(int id)
+        {
+            var point = await _context.PickupPoints.FindAsync(id);
+            if (point != null)
+            {
+                _context.PickupPoints.Remove(point);
+                await _context.SaveChangesAsync();
+            }
+            TempData["Message"] = "Пункт самовывоза удалён.";
+            return RedirectToAction("PickupPoints");
+        }
+
     }
 
 

@@ -1,13 +1,41 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 @using Microsoft.AspNetCore.Identity
 @model List<Shop.Models.CartItem>
 
 @{
     var isAuthenticated = User.Identity.IsAuthenticated;
     var currentUserLogin = User.Identity?.Name;
-    var totalPrice = Model.Sum(x => x.Product.Price * x.Quantity);
     var dbContext = Context.RequestServices.GetService(typeof(Shop.Data.ApplicationDbContext)) as Shop.Data.ApplicationDbContext;
     var user = dbContext?.Users.FirstOrDefault(u => u.Login == currentUserLogin);
+    var isWholesale = user?.IsWholesale ?? false;
+
+    var productIds = Model.Select(x => x.ProductId).ToList();
+    var tiersDict = isWholesale
+        ? dbContext!.WholesaleTiers
+            .Where(t => productIds.Contains(t.ProductId))
+            .ToList()
+            .GroupBy(t => t.ProductId)
+            .ToDictionary(g => g.Key, g => g.ToList())
+        : new Dictionary<int, List<Shop.Models.WholesaleTier>>();
+
+    decimal totalPrice = 0;
+    foreach (var item in Model)
+    {
+        if (isWholesale && tiersDict.TryGetValue(item.ProductId, out var tiers) && tiers.Any())
+        {
+            var best = tiers.Where(t => item.Quantity >= t.MinQuantity).OrderByDescending(t => t.MinQuantity).FirstOrDefault();
+            decimal unitPrice = best != null
+                ? Math.Round(item.Product.Price * (1 - best.DiscountPercent / 100m), 2)
+                : item.Product.Price;
+            totalPrice += unitPrice * item.Quantity;
+        }
+        else
+        {
+            totalPrice += item.Product.Price * item.Quantity;
+        }
+    }
+
+    var pickupPoints = dbContext?.PickupPoints.Where(p => p.IsActive).ToList() ?? new List<Shop.Models.PickupPoint>();
 }
 
 <h2 class="mb-4">Корзина</h2>
@@ -21,6 +49,14 @@ else
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         @foreach (var item in Model)
         {
+            tiersDict.TryGetValue(item.ProductId, out var itemTiers);
+            var bestTier = isWholesale && itemTiers != null
+                ? itemTiers.Where(t => item.Quantity >= t.MinQuantity).OrderByDescending(t => t.MinQuantity).FirstOrDefault()
+                : null;
+            decimal discountedPrice = bestTier != null
+                ? Math.Round(item.Product.Price * (1 - bestTier.DiscountPercent / 100m), 2)
+                : item.Product.Price;
+
             <div class="col">
                 <div class="card h-100 shadow-sm">
                     @if (!string.IsNullOrEmpty(item.Product.Image))
@@ -29,21 +65,69 @@ else
                     }
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title">@item.Product.Name</h5>
-                        <p class="card-text mb-2"><strong>Цена:</strong> @item.Product.Price руб</p>
 
-                        <div class="d-flex align-items-center mb-2">
-                            <form asp-action="UpdateQuantity" method="post" class="d-inline">
-                                <input type="hidden" name="productId" value="@item.ProductId" />
-                                <button type="submit" name="action" value="decrease" class="btn btn-sm btn-outline-secondary">−</button>
-                            </form>
-                            <span class="mx-3">@item.Quantity</span>
-                            <form asp-action="UpdateQuantity" method="post" class="d-inline">
-                                <input type="hidden" name="productId" value="@item.ProductId" />
-                                <button type="submit" name="action" value="increase" class="btn btn-sm btn-outline-secondary">+</button>
-                            </form>
+                        @if (isWholesale && bestTier != null)
+                        {
+                            <p class="card-text mb-0">
+                                <span class="text-muted text-decoration-line-through small">@item.Product.Price руб</span>
+                                <span class="text-success fw-bold ms-2">@discountedPrice руб</span>
+                                <span class="badge bg-success ms-1">-@bestTier.DiscountPercent%</span>
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="card-text mb-2"><strong>Цена:</strong> @item.Product.Price руб</p>
+                        }
+
+                        @if (isWholesale && itemTiers != null && itemTiers.Any())
+                        {
+                            <div class="mt-2 mb-2">
+                                <small class="text-muted">Оптовые скидки:</small>
+                                <table class="table table-sm table-bordered mb-0 mt-1" style="font-size:0.8rem;">
+                                    <thead class="table-light">
+                                        <tr><th>От кол-ва</th><th>Скидка</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var tier in itemTiers.OrderBy(t => t.MinQuantity))
+                                        {
+                                            <tr class="@(bestTier?.Id == tier.Id ? "table-success" : "")">
+                                                <td>от @tier.MinQuantity шт.</td>
+                                                <td>@tier.DiscountPercent%</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+
+                        @* Управление количеством *@
+                        <div class="d-flex align-items-center gap-2 mb-2 mt-2">
+                            <button class="btn btn-sm btn-outline-secondary qty-btn"
+                                    data-product-id="@item.ProductId"
+                                    data-action="decrease">−</button>
+
+                            <input type="number"
+                                   class="form-control form-control-sm text-center qty-input"
+                                   style="width:70px;"
+                                   value="@item.Quantity"
+                                   min="1"
+                                   max="@item.Product.StockQuantity"
+                                   data-product-id="@item.ProductId"
+                                   data-price="@item.Product.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)"
+                                   data-stock="@item.Product.StockQuantity"
+                                   data-name="@item.Product.Name" />
+
+                            <button class="btn btn-sm btn-outline-secondary qty-btn"
+                                    data-product-id="@item.ProductId"
+                                    data-action="increase">+</button>
+
+                            <small class="text-muted">макс. @item.Product.StockQuantity</small>
                         </div>
 
-                        <p class="card-text mb-3"><strong>Итого:</strong> @(item.Quantity * item.Product.Price) р.</p>
+                        <p class="card-text mb-3">
+                            <strong>Итого:</strong>
+                            <span id="item-total-@item.ProductId">@((discountedPrice * item.Quantity).ToString("F2", System.Globalization.CultureInfo.InvariantCulture))</span> р.
+                        </p>
 
                         <form asp-action="RemoveFromCart" method="post" class="mt-auto">
                             <input type="hidden" name="productId" value="@item.ProductId" />
@@ -57,7 +141,9 @@ else
         }
     </div>
 
-    <h4 class="mt-5">Общая сумма: @totalPrice руб</h4>
+    <h4 class="mt-5">
+        Общая сумма: <span id="cart-total">@totalPrice.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)</span> руб
+    </h4>
 
     <div class="mt-4">
         @if (isAuthenticated)
@@ -86,15 +172,12 @@ else
 
                     <div class="modal-body p-4">
                         <form id="orderForm" method="post" asp-controller="Order" asp-action="Create">
-                            <input type="hidden" name="cartData" value="@JsonSerializer.Serialize(Model)" />
-                            <input type="hidden" name="totalPrice" value="@totalPrice" />
+                            <input type="hidden" name="cartData" id="cartDataInput" value="@JsonSerializer.Serialize(Model)" />
 
                             <div class="mb-4">
                                 <label class="form-label fw-semibold text-dark">Имя пользователя</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light">
-                                        <i class="bi bi-person"></i>
-                                    </span>
+                                    <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
                                     <input type="text" class="form-control form-control-lg" value="@user?.Login" disabled />
                                 </div>
                             </div>
@@ -103,31 +186,45 @@ else
                                 <div class="col-md-6 mb-3 mb-md-0">
                                     <label class="form-label fw-semibold text-dark">Email</label>
                                     <div class="input-group">
-                                        <span class="input-group-text bg-light">
-                                            <i class="bi bi-envelope"></i>
-                                        </span>
+                                        <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
                                         <input type="email" class="form-control form-control-lg" value="@user?.Email" disabled />
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-dark">Телефон</label>
                                     <div class="input-group">
-                                        <span class="input-group-text bg-light">
-                                            <i class="bi bi-phone"></i>
-                                        </span>
+                                        <span class="input-group-text bg-light"><i class="bi bi-phone"></i></span>
                                         <input type="tel" class="form-control form-control-lg" value="@user?.PhoneNumber" disabled />
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mb-4">
+                                <label class="form-label fw-semibold text-dark">Способ получения <span class="text-danger">*</span></label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check flex-fill border rounded p-3" id="deliveryCard" style="cursor:pointer;">
+                                        <input class="form-check-input" type="radio" name="DeliveryType" id="deliveryRadio" value="Доставка" checked />
+                                        <label class="form-check-label w-100" for="deliveryRadio" style="cursor:pointer;">
+                                            <div class="fw-bold">🚚 Доставка</div>
+                                            <div class="text-muted small">По вашему адресу</div>
+                                        </label>
+                                    </div>
+                                    <div class="form-check flex-fill border rounded p-3" id="pickupCard" style="cursor:pointer;">
+                                        <input class="form-check-input" type="radio" name="DeliveryType" id="pickupRadio" value="Самовывоз" />
+                                        <label class="form-check-label w-100" for="pickupRadio" style="cursor:pointer;">
+                                            <div class="fw-bold">🏪 Самовывоз</div>
+                                            <div class="text-muted small">Из пункта выдачи</div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="deliveryBlock" class="mb-4">
                                 <label class="form-label fw-semibold text-dark">Адрес доставки <span class="text-danger">*</span></label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light">
-                                        <i class="bi bi-geo-alt"></i>
-                                    </span>
+                                    <span class="input-group-text bg-light"><i class="bi bi-geo-alt"></i></span>
                                     <input type="text" id="addressInput" name="CustomerAddress" class="form-control"
-                                           placeholder="Выберите адрес на карте" required readonly
+                                           placeholder="Выберите адрес на карте" readonly
                                            onclick="document.getElementById('mapContainer').style.display='block'; initMap();">
                                 </div>
                                 <div id="mapContainer" style="height: 300px; display: none; margin-top: 10px; border: 1px solid #ddd; border-radius: 5px;">
@@ -135,17 +232,40 @@ else
                                 </div>
                             </div>
 
+                            <div id="pickupBlock" class="mb-4" style="display:none;">
+                                <label class="form-label fw-semibold text-dark">Пункт самовывоза <span class="text-danger">*</span></label>
+                                @if (pickupPoints.Any())
+                                {
+                                    <select name="PickupPointId" class="form-select form-select-lg" id="pickupSelect">
+                                        <option value="">— Выберите пункт —</option>
+                                        @foreach (var point in pickupPoints)
+                                        {
+                                            <option value="@point.Id">@point.Name — @point.Address @(point.WorkingHours != null ? $"({point.WorkingHours})" : "")</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-warning">Пункты самовывоза пока недоступны. Выберите доставку.</div>
+                                }
+                            </div>
+
                             <div class="mb-4">
                                 <label class="form-label fw-semibold text-dark">Комментарий к заказу</label>
-                                <textarea name="Comment" class="form-control" rows="3"
-                                          placeholder="Дополнительные пожелания к заказу"></textarea>
+                                <textarea name="Comment" class="form-control" rows="3" placeholder="Дополнительные пожелания к заказу"></textarea>
                             </div>
 
                             <div class="alert alert-dark py-3 mb-4">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="fw-bold fs-5 text-white">Общая сумма заказа:</span>
-                                    <span class="fw-bold fs-4 text-white">@totalPrice руб</span>
+                                    <span class="fw-bold fs-4 text-white">
+                                        <span id="modal-total">@totalPrice.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)</span> руб
+                                    </span>
                                 </div>
+                                @if (isWholesale)
+                                {
+                                    <div class="text-success small mt-1">✔ Применены оптовые скидки</div>
+                                }
                             </div>
 
                             <div class="d-grid">
@@ -160,95 +280,186 @@ else
         </div>
 
         <style>
-            .modal-content {
-                background-color: #f8f9fa;
-            }
-
-            .alert-dark {
-                background-color: #343a40;
-                color: white;
-            }
-
-            .form-control:focus {
-                border-color: #495057;
-                box-shadow: 0 0 0 0.25rem rgba(73, 80, 87, 0.25);
-            }
-
-            .btn-dark:hover {
-                background-color: #23272b;
-                transform: translateY(-1px);
-            }
+            .modal-content { background-color: #f8f9fa; }
+            .alert-dark { background-color: #343a40; color: white; }
+            .form-control:focus { border-color: #495057; box-shadow: 0 0 0 0.25rem rgba(73, 80, 87, 0.25); }
+            .btn-dark:hover { background-color: #23272b; transform: translateY(-1px); }
+            /* Скрываем стрелки у number input */
+            .qty-input::-webkit-outer-spin-button,
+            .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+            .qty-input { -moz-appearance: textfield; }
         </style>
     }
-
 
     @section Scripts {
         <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 
         <script>
-            let map;
-            let marker;
+            // ===== Пересборка cartData перед отправкой формы =====
+            document.getElementById('orderForm').addEventListener('submit', function () {
+                // Собираем актуальные количества из всех инпутов корзины
+                const inputs = document.querySelectorAll('.qty-input');
+                const cartData = Array.from(inputs).map(input => ({
+                    ProductId: parseInt(input.dataset.productId),
+                    Quantity: parseInt(input.value) || 1,
+                    Product: {
+                        Id: parseInt(input.dataset.productId),
+                        Price: parseFloat(input.dataset.price),
+                        Name: input.dataset.name || '',
+                        Image: '',
+                        Description: '',
+                        Category: '',
+                        StockQuantity: parseInt(input.dataset.stock)
+                    }
+                }));
+                document.getElementById('cartDataInput').value = JSON.stringify(cartData);
+            });
+
+            // ===== Управление количеством через AJAX =====
+            const debounceTimers = {};
+
+            function setQuantity(productId, quantity) {
+                fetch('/Cart/SetQuantity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `productId=${productId}&quantity=${quantity}`
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+
+                    // Если сервер скорректировал значение (например превысило склад) — обновляем поле
+                    const input = document.querySelector(`.qty-input[data-product-id="${productId}"]`);
+                    if (input) input.value = data.quantity;
+
+                    // Обновляем итог по строке
+                    const itemTotal = document.getElementById(`item-total-${productId}`);
+                    if (itemTotal) itemTotal.textContent = data.itemTotal.toFixed(2);
+
+                    // Обновляем общую сумму на странице и в модале
+                    document.getElementById('cart-total').textContent = data.cartTotal.toFixed(2);
+                    const modalTotal = document.getElementById('modal-total');
+                    if (modalTotal) modalTotal.textContent = data.cartTotal.toFixed(2);
+                });
+            }
+
+            // Кнопки − и +
+            document.querySelectorAll('.qty-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const productId = btn.dataset.productId;
+                    const input = document.querySelector(`.qty-input[data-product-id="${productId}"]`);
+                    const stock = parseInt(input.dataset.stock);
+                    let val = parseInt(input.value) || 1;
+
+                    if (btn.dataset.action === 'increase') val = Math.min(val + 1, stock);
+                    else val = Math.max(val - 1, 1);
+
+                    input.value = val;
+                    setQuantity(productId, val);
+                });
+            });
+
+            // Прямой ввод — дебаунс 600мс, чтобы не дёргать сервер при каждой цифре
+            document.querySelectorAll('.qty-input').forEach(input => {
+                input.addEventListener('input', () => {
+                    const productId = input.dataset.productId;
+                    const stock = parseInt(input.dataset.stock);
+                    clearTimeout(debounceTimers[productId]);
+                    debounceTimers[productId] = setTimeout(() => {
+                        let val = parseInt(input.value);
+                        if (isNaN(val) || val < 1) val = 1;
+                        if (val > stock) val = stock;
+                        input.value = val;
+                        setQuantity(productId, val);
+                    }, 600);
+                });
+
+                // При потере фокуса — применяем сразу, без дебаунса
+                input.addEventListener('blur', () => {
+                    const productId = input.dataset.productId;
+                    const stock = parseInt(input.dataset.stock);
+                    clearTimeout(debounceTimers[productId]);
+                    let val = parseInt(input.value);
+                    if (isNaN(val) || val < 1) val = 1;
+                    if (val > stock) val = stock;
+                    input.value = val;
+                    setQuantity(productId, val);
+                });
+            });
+
+            // ===== Доставка / Самовывоз =====
+            const deliveryRadio = document.getElementById('deliveryRadio');
+            const pickupRadio = document.getElementById('pickupRadio');
+            const deliveryBlock = document.getElementById('deliveryBlock');
+            const pickupBlock = document.getElementById('pickupBlock');
+            const deliveryCard = document.getElementById('deliveryCard');
+            const pickupCard = document.getElementById('pickupCard');
+            const addressInput = document.getElementById('addressInput');
+            const pickupSelect = document.getElementById('pickupSelect');
+
+            function updateDeliveryType() {
+                if (deliveryRadio.checked) {
+                    deliveryBlock.style.display = 'block';
+                    pickupBlock.style.display = 'none';
+                    deliveryCard.classList.add('border-primary', 'bg-light');
+                    pickupCard.classList.remove('border-primary', 'bg-light');
+                    if (addressInput) addressInput.required = true;
+                    if (pickupSelect) pickupSelect.required = false;
+                } else {
+                    deliveryBlock.style.display = 'none';
+                    pickupBlock.style.display = 'block';
+                    pickupCard.classList.add('border-primary', 'bg-light');
+                    deliveryCard.classList.remove('border-primary', 'bg-light');
+                    if (addressInput) addressInput.required = false;
+                    if (pickupSelect) pickupSelect.required = true;
+                }
+            }
+
+            deliveryRadio.addEventListener('change', updateDeliveryType);
+            pickupRadio.addEventListener('change', updateDeliveryType);
+            deliveryCard.addEventListener('click', () => { deliveryRadio.checked = true; updateDeliveryType(); });
+            pickupCard.addEventListener('click', () => { pickupRadio.checked = true; updateDeliveryType(); });
+            updateDeliveryType();
+
+            // ===== Карта =====
+            let map, marker;
 
             function initMap() {
                 if (map) return;
-
                 const minskCoords = [53.9045, 27.5615];
                 map = L.map('map').setView(minskCoords, 12);
-
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 }).addTo(map);
 
                 map.on('click', function(e) {
                     const { lat, lng } = e.latlng;
-
                     if (marker) map.removeLayer(marker);
-
-                    marker = L.marker([lat, lng]).addTo(map)
-                        .bindPopup('Выбранный адрес')
-                        .openPopup();
-
+                    marker = L.marker([lat, lng]).addTo(map).bindPopup('Выбранный адрес').openPopup();
                     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-                        .then(response => response.json())
+                        .then(r => r.json())
                         .then(data => {
-                            const addressParts = data.address;
+                            const a = data.address;
                             let address = '';
-
-                            if (addressParts.city || addressParts.town || addressParts.village) {
-                                address += (addressParts.city || addressParts.town || addressParts.village) + ' ';
-                            }
-                            if (addressParts.road) {
-                                address += addressParts.road + ' ';
-                            }
-                            if (addressParts.house_number) {
-                                address += addressParts.house_number;
-                            }
-
+                            if (a.city || a.town || a.village) address += (a.city || a.town || a.village) + ' ';
+                            if (a.road) address += a.road + ' ';
+                            if (a.house_number) address += a.house_number;
                             document.getElementById('addressInput').value = address.trim();
                             document.getElementById('mapContainer').style.display = 'none';
                         })
-                        .catch(error => {
-                            console.error('Ошибка при получении адреса:', error);
+                        .catch(() => {
                             document.getElementById('addressInput').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
                         });
                 });
 
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
-                        position => {
-                            if (confirm('Использовать ваше текущее местоположение?')) {
-                                map.setView([position.coords.latitude, position.coords.longitude], 15);
-                            }
-                        },
-                        error => console.error('Ошибка геолокации:', error)
+                        pos => { if (confirm('Использовать ваше текущее местоположение?')) map.setView([pos.coords.latitude, pos.coords.longitude], 15); },
+                        err => console.error('Ошибка геолокации:', err)
                     );
                 }
             }
         </script>
     }
-
-
 }
-
-
