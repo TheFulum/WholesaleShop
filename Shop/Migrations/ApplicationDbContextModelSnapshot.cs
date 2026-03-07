@@ -34,8 +34,16 @@ namespace Shop.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
+                    b.Property<string>("DeliveryType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("PickupPointId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
@@ -57,9 +65,43 @@ namespace Shop.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PickupPointId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Order");
+                });
+
+            modelBuilder.Entity("Shop.Models.PickupPoint", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("WorkingHours")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PickupPoints");
                 });
 
             modelBuilder.Entity("Shop.Models.Product", b =>
@@ -139,6 +181,9 @@ namespace Shop.Migrations
                     b.Property<bool>("IsAdmin")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<bool>("IsWholesale")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("Login")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -158,13 +203,41 @@ namespace Shop.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Shop.Models.WholesaleTier", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("DiscountPercent")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("WholesaleTiers");
+                });
+
             modelBuilder.Entity("Shop.Models.Order", b =>
                 {
+                    b.HasOne("Shop.Models.PickupPoint", "PickupPoint")
+                        .WithMany()
+                        .HasForeignKey("PickupPointId");
+
                     b.HasOne("Shop.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("PickupPoint");
 
                     b.Navigation("User");
                 });
@@ -178,6 +251,22 @@ namespace Shop.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Shop.Models.WholesaleTier", b =>
+                {
+                    b.HasOne("Shop.Models.Product", "Product")
+                        .WithMany("WholesaleTiers")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Shop.Models.Product", b =>
+                {
+                    b.Navigation("WholesaleTiers");
                 });
 #pragma warning restore 612, 618
         }

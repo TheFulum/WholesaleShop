@@ -12,8 +12,8 @@ namespace Shop.Data
         public DbSet<Product> Products { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Order> Order { get; set; }
-
         public DbSet<ProductVote> ProductVotes { get; set; }
-
+        public DbSet<WholesaleTier> WholesaleTiers { get; set; }
+        public DbSet<PickupPoint> PickupPoints { get; set; }
     }
 }

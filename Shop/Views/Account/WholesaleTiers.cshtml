@@ -1,0 +1,68 @@
+@model IEnumerable<Shop.Models.WholesaleTier>
+
+@{
+    ViewData["Title"] = "Оптовые пороги";
+}
+
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Оптовые скидки: @ViewBag.ProductName</h2>
+        <a asp-action="Admin" class="btn btn-outline-dark">← Назад к товарам</a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-7">
+            <div class="table-responsive shadow-sm">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Мин. количество</th>
+                            <th>Скидка (%)</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tier in Model.OrderBy(t => t.MinQuantity))
+                        {
+                            <tr>
+                                <td>от @tier.MinQuantity шт.</td>
+                                <td><span class="badge bg-success fs-6">@tier.DiscountPercent%</span></td>
+                                <td>
+                                    <form asp-action="DeleteWholesaleTier" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@tier.Id" />
+                                        <input type="hidden" name="productId" value="@ViewBag.ProductId" />
+                                        <button class="btn btn-sm btn-danger">Удалить</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr><td colspan="3" class="text-center text-muted">Пороги не добавлены</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Добавить порог</h5>
+                    <form asp-action="AddWholesaleTier" method="post">
+                        <input type="hidden" name="productId" value="@ViewBag.ProductId" />
+                        <div class="mb-3">
+                            <label class="form-label">Минимальное количество (шт.)</label>
+                            <input type="number" name="minQuantity" class="form-control" placeholder="Например: 10" min="1" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Скидка (%)</label>
+                            <input type="number" name="discountPercent" class="form-control" placeholder="Например: 15" min="1" max="99" required />
+                        </div>
+                        <button type="submit" class="btn btn-dark w-100">Добавить порог</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

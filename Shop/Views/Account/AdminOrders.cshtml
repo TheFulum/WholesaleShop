@@ -1,4 +1,4 @@
-﻿@model IEnumerable<Shop.Models.Order>
+@model IEnumerable<Shop.Models.Order>
 
 @{
     ViewData["Title"] = "Управление заказами";
@@ -11,6 +11,7 @@
             <a asp-controller="Account" asp-action="AdminUsers" class="btn btn-outline-dark">Пользователи</a>
             <a asp-controller="Account" asp-action="OrderReports" class="btn btn-outline-dark">Отчётность</a>
             <a asp-controller="Account" asp-action="Admin" class="btn btn-outline-dark">Товары</a>
+            <a asp-controller="Account" asp-action="PickupPoints" class="btn btn-outline-dark">Пункты выдачи</a>
         </div>
     </div>
 
@@ -25,7 +26,8 @@
                     <th>Содержимое заказа</th>
                     <th>Кол-во</th>
                     <th>Цена</th>
-                    <th>Адрес</th>
+                    <th>Доставка</th>
+                    <th>Адрес / Пункт выдачи</th>
                     <th>Дата заказа</th>
                     <th>Статус</th>
                     <th></th>
@@ -42,22 +44,29 @@
                         <td>@order.Product</td>
                         <td>@order.Quantity</td>
                         <td>@order.Price руб</td>
+                        <td>
+                            @if (order.DeliveryType == "Самовывоз")
+                            {
+                                <span class="badge bg-info text-dark">🏪 Самовывоз</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-primary">🚚 Доставка</span>
+                            }
+                        </td>
                         <td>@order.CustomerAddress</td>
                         <td>@order.OrderDate.ToString("dd.MM.yyyy HH:mm")</td>
                         <td>
                             <select class="form-select form-select-sm"
                                     onchange="changeOrderStatus(@order.Id, this.value)"
-                            @(order.Status == "Отменён" ? "disabled" : "")>
+                                    @(order.Status == "Отменён" ? "disabled" : "")>
                                 @foreach (var status in new[] { "Новый", "Подтверждён", "Доставлен", "Отменён" })
                                 {
                                     var isCurrent = order.Status == status;
                                     var isCancelled = order.Status == "Отменён";
                                     var isChangingToCancelled = status == "Отменён" && !isCancelled;
 
-                                    if (isChangingToCancelled)
-                                    {
-                                        continue; // Не даём выбирать Отменён, если заказ не был отменён
-                                    }
+                                    if (isChangingToCancelled) { continue; }
 
                                     <option value="@status" selected="@(isCurrent ? "selected" : null)">
                                         @status
@@ -112,9 +121,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
+            tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
         });
 
         function setDeleteOrderId(orderId) {
@@ -131,9 +138,7 @@
                 body: JSON.stringify({ id: orderId, status: newStatus })
             })
             .then(response => {
-                if (!response.ok) {
-                    alert('Ошибка при обновлении статуса.');
-                }
+                if (!response.ok) alert('Ошибка при обновлении статуса.');
             })
             .catch(error => {
                 console.error('Ошибка:', error);

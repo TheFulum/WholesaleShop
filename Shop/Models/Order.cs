@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Shop.Models
@@ -17,11 +17,11 @@ namespace Shop.Models
         public string Product { get; set; } = string.Empty;
 
         [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "���������� ������ ������ ���� �� ����� 1")]
+        [Range(1, int.MaxValue, ErrorMessage = "Количество должно быть не менее 1")]
         public int Quantity { get; set; }
 
         [Required]
-        [Range(0.01, double.MaxValue, ErrorMessage = "���� ������ ���� ������ 0")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Цена должна быть больше 0")]
         public decimal Price { get; set; }
 
         [Required]
@@ -33,9 +33,20 @@ namespace Shop.Models
 
         [Required]
         [StringLength(50)]
-        public string Status { get; set; } = "�����";
+        public string Status { get; set; } = "Новый";
 
         [Required]
         public DateTime OrderDate { get; set; } = DateTime.Now;
+
+        // Тип доставки: "Доставка" или "Самовывоз"
+        [Required]
+        [StringLength(20)]
+        public string DeliveryType { get; set; } = "Доставка";
+
+        // Ссылка на пункт выдачи (только для самовывоза)
+        public int? PickupPointId { get; set; }
+
+        [ForeignKey("PickupPointId")]
+        public PickupPoint? PickupPoint { get; set; }
     }
 }
