@@ -44,6 +44,12 @@ namespace Shop.Controllers
         if (!ModelState.IsValid)
             return View(user);
 
+        if (!user.AcceptedTerms)
+            ModelState.AddModelError("AcceptedTerms", "Необходимо согласиться с пользовательским соглашением.");
+
+        if (!user.AcceptedPersonalDataProcessing)
+            ModelState.AddModelError("AcceptedPersonalDataProcessing", "Необходимо согласиться на обработку персональных данных.");
+
         var normalizedLogin = user.Login.Trim().ToLower();
         var normalizedEmail = user.Email.Trim().ToLower();
 
@@ -63,67 +69,14 @@ namespace Shop.Controllers
             return View(user);
 
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+        user.IsWholesale = false;
+        user.ConsentsAcceptedAt = DateTime.UtcNow;
 
         _context.Users.Add(user);
         _context.SaveChanges();
 
         return RedirectToAction("Login", "Account");
     }
-
-
-
-    // Get [Edit User]
-    [HttpGet]
-        [Authorize]
-        public async Task<IActionResult> EditUser(int id)
-        {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-            return View(user);
-
-        }
-
-        [HttpPost]  
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditUser(int id, User user, string isAdmin)
-        {
-            var existingUser = await _context.Users.FindAsync(id);
-            if (existingUser == null)
-            {
-                return NotFound();
-            }
-
-            try
-            {
-                existingUser.Login = user.Login;
-                existingUser.Email = user.Email;
-                existingUser.PhoneNumber = user.PhoneNumber;
-
-                if (!string.IsNullOrEmpty(isAdmin))
-                {
-                    existingUser.IsAdmin = isAdmin == "Да";
-                }
-
-                _context.Update(existingUser);
-                await _context.SaveChangesAsync();
-                return RedirectToAction("AdminUsers");
-            }
-            catch (DbUpdateException ex)
-            {
-                ModelState.AddModelError("", "Ошибка при сохранении изменений. " + ex.Message);
-            }
-            catch (Exception ex)
-            {
-                ModelState.AddModelError("", "Произошла непредвиденная ошибка. " + ex.Message);
-            }
-
-            return View(user);
-        }
-
-
 
         [HttpGet]
         public IActionResult Login()
@@ -215,20 +168,6 @@ namespace Shop.Controllers
             return View(await users.ToListAsync());
         }
 
-        [HttpPost]
-        public IActionResult DeleteUser(int id)
-        {
-            var user = _context.Users.Find(id);
-            if (user != null)
-            {
-                _context.Users.Remove(user);
-                _context.SaveChanges();
-            }
-
-            ViewBag.Message = "Пользователь удалён";
-            return RedirectToAction("AdminUsers");
-        }
-
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
@@ -281,6 +220,10 @@ namespace Shop.Controllers
 
             // Передаем пользователя в ViewBag
             ViewBag.User = user;
+            ViewBag.WholesaleRequest = await _context.WholesaleRequests
+                .Where(r => r.UserId == currentUserId)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync();
 
             return View(orders);
         }
@@ -300,6 +243,10 @@ namespace Shop.Controllers
                     .ToListAsync();
 
                 ViewBag.User = await _context.Users.FindAsync(currentUserId);
+                ViewBag.WholesaleRequest = await _context.WholesaleRequests
+                    .Where(r => r.UserId == currentUserId)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .FirstOrDefaultAsync();
                 return View("MyOrders", orders);
             }
 
@@ -320,6 +267,10 @@ namespace Shop.Controllers
                     .ToListAsync();
 
                 ViewBag.User = user;
+                ViewBag.WholesaleRequest = await _context.WholesaleRequests
+                    .Where(r => r.UserId == currentUserId)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .FirstOrDefaultAsync();
                 return View("MyOrders", orders);
             }
 
@@ -343,6 +294,10 @@ namespace Shop.Controllers
                     .ToListAsync();
 
                 ViewBag.User = user;
+                ViewBag.WholesaleRequest = await _context.WholesaleRequests
+                    .Where(r => r.UserId == currentUserId)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .FirstOrDefaultAsync();
                 return View("MyOrders", orders);
             }
 
@@ -358,6 +313,49 @@ namespace Shop.Controllers
             await _context.SaveChangesAsync();
 
             TempData["Message"] = "Данные профиля успешно обновлены";
+            return RedirectToAction("MyOrders");
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitWholesaleRequest(WholesaleRequest request)
+        {
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+            bool hasPendingRequest = await _context.WholesaleRequests
+                .AnyAsync(r => r.UserId == currentUserId && r.Status == "Pending");
+
+            if (hasPendingRequest)
+            {
+                TempData["Message"] = "У вас уже есть заявка на рассмотрении.";
+                return RedirectToAction("MyOrders");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var orders = await _context.Order
+                    .Where(o => o.UserId == currentUserId)
+                    .OrderByDescending(o => o.OrderDate)
+                    .ToListAsync();
+                ViewBag.User = await _context.Users.FindAsync(currentUserId);
+                ViewBag.WholesaleRequest = await _context.WholesaleRequests
+                    .Where(r => r.UserId == currentUserId)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .FirstOrDefaultAsync();
+                return View("MyOrders", orders);
+            }
+
+            request.UserId = currentUserId;
+            request.Status = "Pending";
+            request.CreatedAt = DateTime.UtcNow;
+            request.ReviewedAt = null;
+            request.ReviewComment = null;
+
+            _context.WholesaleRequests.Add(request);
+            await _context.SaveChangesAsync();
+
+            TempData["Message"] = "Заявка на оптовый аккаунт отправлена.";
             return RedirectToAction("MyOrders");
         }
         [HttpPost]
@@ -688,6 +686,15 @@ namespace Shop.Controllers
             existingProduct.Price = product.Price;
             existingProduct.StockQuantity = product.StockQuantity;
             existingProduct.Category = product.Category;
+            existingProduct.CountryOfOrigin = product.CountryOfOrigin;
+            existingProduct.Manufacturer = product.Manufacturer;
+            existingProduct.ExpirationInfo = product.ExpirationInfo;
+            existingProduct.StorageConditions = product.StorageConditions;
+            existingProduct.Ingredients = product.Ingredients;
+            existingProduct.Calories = product.Calories;
+            existingProduct.Proteins = product.Proteins;
+            existingProduct.Fats = product.Fats;
+            existingProduct.Carbohydrates = product.Carbohydrates;
 
             if (imageFile != null)
             {
@@ -877,6 +884,110 @@ namespace Shop.Controllers
             }
             TempData["Message"] = "Пункт самовывоза удалён.";
             return RedirectToAction("PickupPoints");
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> WholesaleRequests()
+        {
+            var requests = await _context.WholesaleRequests
+                .Include(r => r.User)
+                .OrderBy(r => r.Status == "Pending" ? 0 : 1)
+                .ThenByDescending(r => r.CreatedAt)
+                .ToListAsync();
+            return View(requests);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApproveWholesaleRequest(int id)
+        {
+            var request = await _context.WholesaleRequests.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == id);
+            if (request == null) return NotFound();
+
+            request.Status = "Approved";
+            request.ReviewedAt = DateTime.UtcNow;
+            request.ReviewComment = null;
+
+            if (request.User != null)
+            {
+                request.User.IsWholesale = true;
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Заявка одобрена, пользователю выдан оптовый доступ.";
+            return RedirectToAction("WholesaleRequests");
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectWholesaleRequest(int id, string? reviewComment)
+        {
+            var request = await _context.WholesaleRequests.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == id);
+            if (request == null) return NotFound();
+
+            request.Status = "Rejected";
+            request.ReviewedAt = DateTime.UtcNow;
+            request.ReviewComment = reviewComment;
+
+            if (request.User != null)
+            {
+                request.User.IsWholesale = false;
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Заявка отклонена.";
+            return RedirectToAction("WholesaleRequests");
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> LegalDocuments()
+        {
+            var terms = await _context.LegalDocuments.FirstOrDefaultAsync(d => d.DocumentType == "Terms");
+            var privacy = await _context.LegalDocuments.FirstOrDefaultAsync(d => d.DocumentType == "Privacy");
+
+            ViewBag.TermsTitle = terms?.Title ?? "Пользовательское соглашение";
+            ViewBag.TermsContent = terms?.Content ?? "Настоящее соглашение регулирует использование сайта и сервиса интернет-магазина \"Купеческая гильдия\".";
+            ViewBag.PrivacyTitle = privacy?.Title ?? "Политика обработки персональных данных";
+            ViewBag.PrivacyContent = privacy?.Content ?? "Мы обрабатываем персональные данные пользователей для регистрации, обработки заказов и обратной связи.";
+
+            return View();
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> LegalDocuments(string termsTitle, string termsContent, string privacyTitle, string privacyContent)
+        {
+            var terms = await _context.LegalDocuments.FirstOrDefaultAsync(d => d.DocumentType == "Terms");
+            var privacy = await _context.LegalDocuments.FirstOrDefaultAsync(d => d.DocumentType == "Privacy");
+
+            if (terms == null)
+            {
+                terms = new LegalDocument { DocumentType = "Terms" };
+                _context.LegalDocuments.Add(terms);
+            }
+
+            if (privacy == null)
+            {
+                privacy = new LegalDocument { DocumentType = "Privacy" };
+                _context.LegalDocuments.Add(privacy);
+            }
+
+            terms.Title = string.IsNullOrWhiteSpace(termsTitle) ? "Пользовательское соглашение" : termsTitle.Trim();
+            terms.Content = string.IsNullOrWhiteSpace(termsContent) ? "Текст не задан." : termsContent.Trim();
+            terms.UpdatedAt = DateTime.UtcNow;
+
+            privacy.Title = string.IsNullOrWhiteSpace(privacyTitle) ? "Политика обработки персональных данных" : privacyTitle.Trim();
+            privacy.Content = string.IsNullOrWhiteSpace(privacyContent) ? "Текст не задан." : privacyContent.Trim();
+            privacy.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Документы успешно обновлены.";
+            return RedirectToAction("LegalDocuments");
         }
 
     }

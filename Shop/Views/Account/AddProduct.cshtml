@@ -29,6 +29,51 @@
                 <span asp-validation-for="Category" class="text-danger"></span>
             </div>
 
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="CountryOfOrigin" class="form-label">Страна производителя</label>
+                    <input asp-for="CountryOfOrigin" class="form-control" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Manufacturer" class="form-label">Производитель</label>
+                    <input asp-for="Manufacturer" class="form-control" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ExpirationInfo" class="form-label">Срок годности</label>
+                <input asp-for="ExpirationInfo" class="form-control" placeholder="Например: 12 месяцев" />
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="StorageConditions" class="form-label">Условия хранения</label>
+                <textarea asp-for="StorageConditions" class="form-control" rows="2"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Ingredients" class="form-label">Состав</label>
+                <textarea asp-for="Ingredients" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Calories" class="form-label">Ккал</label>
+                    <input asp-for="Calories" type="number" step="0.01" class="form-control" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Proteins" class="form-label">Белки</label>
+                    <input asp-for="Proteins" type="number" step="0.01" class="form-control" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Fats" class="form-label">Жиры</label>
+                    <input asp-for="Fats" type="number" step="0.01" class="form-control" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Carbohydrates" class="form-label">Углеводы</label>
+                    <input asp-for="Carbohydrates" type="number" step="0.01" class="form-control" />
+                </div>
+            </div>
+
             <div class="mb-3">
                 <label asp-for="Price" class="form-label">Цена</label>
                 <input asp-for="Price" type="number" class="form-control" />

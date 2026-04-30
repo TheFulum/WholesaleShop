@@ -14,6 +14,8 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Админ-панель: Пользователи</h2>
         <div class="btn-group">
+            <a asp-controller="Account" asp-action="LegalDocuments" class="btn btn-outline-dark">Документы</a>
+            <a asp-controller="Account" asp-action="WholesaleRequests" class="btn btn-outline-dark">Заявки опта</a>
             <a asp-controller="Account" asp-action="AdminOrders" class="btn btn-outline-dark">Заказы</a>
             <a asp-controller="Account" asp-action="PickupPoints" class="btn btn-outline-dark">Пункты выдачи</a>
             <a asp-controller="Account" asp-action="Admin" class="btn btn-outline-dark">Товары</a>
@@ -46,7 +48,6 @@
                             <th>Телефон</th>
                             <th>Почта</th>
                             <th>Админ</th>
-                            <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -58,17 +59,6 @@
                                 <td>@user.PhoneNumber</td>
                                 <td>@Html.Raw(TruncateText(user.Email, 25))</td>
                                 <td>@(user.IsAdmin ? "Да" : "Нет")</td>
-                                <td class="text-center">
-                                    <div class="d-grid gap-2">
-                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteUserModal" onclick="setDeleteUserId('@user.Id')">
-                                            Удалить
-                                        </button>
-                                        <form asp-action="EditUser" asp-controller="Account" method="get">
-                                            <input type="hidden" name="id" value="@user.Id" />
-                                            <button type="submit" class="btn btn-sm btn-warning">Изменить</button>
-                                        </form>
-                                    </div>
-                                </td>
                             </tr>
                         }
                     </tbody>
@@ -79,27 +69,6 @@
 
 </div>
 
-<div class="modal fade" id="confirmDeleteUserModal" tabindex="-1" aria-labelledby="confirmDeleteUserModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content shadow">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="confirmDeleteUserModalLabel">Подтверждение удаления</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-            </div>
-            <div class="modal-body">
-                Вы уверены, что хотите удалить этого пользователя?
-            </div>
-            <div class="modal-footer">
-                <form id="deleteUserForm" asp-action="DeleteUser" method="post">
-                    <input type="hidden" id="deleteUserId" name="id" />
-                    <button type="submit" class="btn btn-danger">Удалить</button>
-                </form>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 @functions {
     public string TruncateText(string text, int maxLength)
     {
@@ -108,10 +77,3 @@
     }
 }
 
-@section Scripts {
-    <script>
-        function setDeleteUserId(userId) {
-            document.getElementById('deleteUserId').value = userId;
-        }
-    </script>
-}

@@ -139,77 +139,67 @@
         </main>
     </div>
 
-    <footer class="border-top footer text-muted bg-dark text-white pt-3" style="">
-        <div class="container d-flex justify-content-between flex-wrap">
-            <div class="mb-3">
-                <h5 class="text-white">Навигация</h5>
-                <ul class="list-unstyled">
-                    <li>
-                        <a asp-controller="Home" asp-action="Index" class="text-white text-muted text-decoration-none">
-                            <i class="bi bi-house-door"></i> Главная
-                        </a>
-                    </li>
-                    <li>
-                        <a asp-controller="Cart" asp-action="Index" class="text-white text-muted text-decoration-none">
-                            <i class="bi bi-cart3"></i> Корзина
-                        </a>
-                    </li>
-                    @if (User.Identity?.IsAuthenticated == true)
-                    {
-                        <li>
-                            <a asp-controller="Account" asp-action="MyOrders" class="text-white text-muted text-decoration-none">
-                                <i class="bi bi-person"></i> Кабинет
-                            </a>
-                        </li>
-                        @if (User.IsInRole("Admin"))
+    <footer class="footer-expanded text-white pt-4">
+        <div class="container">
+            <div class="row g-4 pb-3">
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <h5 class="footer-title">О магазине</h5>
+                    <p class="footer-text mb-2">Купеческая гильдия - продуктовый онлайн-магазин с розничными и оптовыми заказами.</p>
+                    <p class="footer-text mb-0"><i class="bi bi-truck"></i> Доставка по городу и самовывоз</p>
+                </div>
+
+                <div class="col-6 col-lg-2">
+                    <h5 class="footer-title">Покупателям</h5>
+                    <ul class="footer-list">
+                        <li><a asp-controller="Home" asp-action="Index">Каталог</a></li>
+                        <li><a asp-controller="Cart" asp-action="Index">Корзина</a></li>
+                        @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <li>
-                                <a asp-controller="Account" asp-action="Admin" class="text-white text-muted text-decoration-none">
-                                    <i class="bi bi-shield-lock"></i> Админ
-                                </a>
-                            </li>
+                            <li><a asp-controller="Account" asp-action="MyOrders">Личный кабинет</a></li>
                         }
-                        <li>
-                            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-link text-white text-muted text-decoration-none p-0 m-0">
-                                    <i class="bi bi-box-arrow-right"></i> Выйти
-                                </button>
-                            </form>
-                        </li>
+                        else
+                        {
+                            <li><a asp-controller="Account" asp-action="Login">Вход</a></li>
+                            <li><a asp-controller="Account" asp-action="Register">Регистрация</a></li>
+                        }
+                    </ul>
+                </div>
 
-                    }
-                    else
-                    {
-                        <li>
-                            <a asp-controller="Account" asp-action="Login" class="text-white text-muted text-decoration-none">
-                                <i class="bi bi-box-arrow-in-right"></i> Войти
-                            </a>
-                        </li>
-                        <li>
-                            <a asp-controller="Account" asp-action="Register" class="text-white text-muted text-decoration-none">
-                                <i class="bi bi-person-plus"></i> Регистрация
-                            </a>
-                        </li>
-                    }
-                </ul>
+                <div class="col-6 col-lg-2">
+                    <h5 class="footer-title">Партнерам</h5>
+                    <ul class="footer-list">
+                        <li><a asp-controller="Account" asp-action="MyOrders">Заявка на опт</a></li>
+                        <li><a asp-controller="Home" asp-action="Terms">Условия работы</a></li>
+                        <li><a asp-controller="Home" asp-action="PrivacyPolicy">Политика ПДн</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-12 col-sm-6 col-lg-2">
+                    <h5 class="footer-title">Контакты</h5>
+                    <ul class="footer-list footer-contact">
+                        <li><i class="bi bi-envelope"></i> MerchantGuild@gmail.com</li>
+                        <li><i class="bi bi-telephone"></i> +375 (29) 519-29-30</li>
+                        <li><i class="bi bi-geo-alt"></i> Минск, Беларусь</li>
+                    </ul>
+                </div>
+
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <h5 class="footer-title">Режим работы</h5>
+                    <ul class="footer-list footer-schedule">
+                        <li><span>Пн-Пт</span><strong>9:00-21:00</strong></li>
+                        <li><span>Сб</span><strong>10:00-20:00</strong></li>
+                        <li><span>Вс</span><strong>Выходной</strong></li>
+                    </ul>
+                </div>
             </div>
-
-            <div class="text-center mb-3">
-                <h5 class="text-white">Контакты</h5>
-                <p class="mb-1"><i class="bi bi-envelope"></i> MerchantGuild@gmail.com</p>
-                <p><i class="bi bi-telephone"></i> +375 (29) 519-29-30</p>
-            </div>
-
-            <div class="text-start mb-3">
-                <h5 class="text-white">Рабочие часы</h5>
-                <div style="padding-left: 2px;">
-                    <p class="mb-0 fw-bold">Пн: 9:00–21:00</p>
-                    <p class="mb-0 fw-bold">Вт: 9:00–21:00</p>
-                    <p class="mb-0 fw-bold">Ср: 9:00–21:00</p>
-                    <p class="mb-0 fw-bold">Чт: 9:00–21:00</p>
-                    <p class="mb-2 fw-bold">Пт: 9:00–21:00</p>
-                    <p class="mb-0 fw-bold">Сб: 10:00–20:00</p>
-                    <p class="fw-bold">Вс: Выходной</p>
+        </div>
+        <div class="footer-bottom py-2">
+            <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                <div class="small text-white-50">© @DateTime.Now.Year Купеческая гильдия. Все права защищены.</div>
+                <div class="footer-mini-links small">
+                    <a asp-controller="Home" asp-action="Terms">Пользовательское соглашение</a>
+                    <span>•</span>
+                    <a asp-controller="Home" asp-action="PrivacyPolicy">Обработка персональных данных</a>
                 </div>
             </div>
         </div>

@@ -112,5 +112,31 @@ namespace Shop.Controllers
 
             return View(viewModel);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Terms()
+        {
+            var document = await _context.LegalDocuments.FirstOrDefaultAsync(d => d.DocumentType == "Terms");
+
+            ViewData["Title"] = document?.Title ?? "Пользовательское соглашение";
+            ViewBag.DocumentContent = document?.Content ??
+                "Настоящее соглашение регулирует использование сайта и сервиса интернет-магазина \"Купеческая гильдия\".";
+            ViewBag.UpdatedAt = document?.UpdatedAt;
+
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> PrivacyPolicy()
+        {
+            var document = await _context.LegalDocuments.FirstOrDefaultAsync(d => d.DocumentType == "Privacy");
+
+            ViewData["Title"] = document?.Title ?? "Политика обработки персональных данных";
+            ViewBag.DocumentContent = document?.Content ??
+                "Мы обрабатываем персональные данные пользователей для регистрации, обработки заказов и обратной связи.";
+            ViewBag.UpdatedAt = document?.UpdatedAt;
+
+            return View();
+        }
     }
 }

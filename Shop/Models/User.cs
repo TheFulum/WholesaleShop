@@ -31,5 +31,11 @@ namespace Shop.Models
         public bool IsAdmin { get; set; }
 
         public bool IsWholesale { get; set; } = false;
+
+        public bool AcceptedTerms { get; set; }
+
+        public bool AcceptedPersonalDataProcessing { get; set; }
+
+        public DateTime? ConsentsAcceptedAt { get; set; }
     }
 }

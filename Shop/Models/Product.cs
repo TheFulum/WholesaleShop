@@ -33,6 +33,32 @@ namespace Shop.Models
 
         public int TotalVotes { get; set; } = 0;
 
+        [StringLength(100)]
+        public string? CountryOfOrigin { get; set; }
+
+        [StringLength(150)]
+        public string? Manufacturer { get; set; }
+
+        [StringLength(100)]
+        public string? ExpirationInfo { get; set; }
+
+        [StringLength(300)]
+        public string? StorageConditions { get; set; }
+
+        public string? Ingredients { get; set; }
+
+        [Range(0, 2000)]
+        public decimal? Calories { get; set; }
+
+        [Range(0, 100)]
+        public decimal? Proteins { get; set; }
+
+        [Range(0, 100)]
+        public decimal? Fats { get; set; }
+
+        [Range(0, 100)]
+        public decimal? Carbohydrates { get; set; }
+
         public ICollection<WholesaleTier> WholesaleTiers { get; set; } = new List<WholesaleTier>();
     }
 }
