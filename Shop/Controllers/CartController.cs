@@ -21,7 +21,7 @@ namespace Shop.Controllers
         }
 
         [HttpPost]
-        public IActionResult AddToCart(int productId)
+        public IActionResult AddToCart(int productId, string? returnUrl = null)
         {
             var product = _context.Products.FirstOrDefault(p => p.Id == productId);
             if (product == null || product.StockQuantity <= 0)
@@ -44,7 +44,12 @@ namespace Shop.Controllers
             }
 
             SaveCart(cart);
-            return RedirectToAction("Index", "Home");
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return RedirectToAction("Index", "Cart");
         }
 
         [HttpPost]

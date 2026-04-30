@@ -1,0 +1,53 @@
+@{
+    ViewData["Title"] = "Правовые документы";
+}
+
+<div class="container my-4">
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success">@TempData["Message"]</div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Админ-панель: Правовые документы</h2>
+        <div class="btn-group">
+            <a asp-controller="Account" asp-action="Admin" class="btn btn-outline-dark">Товары</a>
+            <a asp-controller="Account" asp-action="WholesaleRequests" class="btn btn-outline-dark">Заявки опта</a>
+            <a asp-controller="Account" asp-action="AdminUsers" class="btn btn-outline-dark">Пользователи</a>
+        </div>
+    </div>
+
+    <form asp-action="LegalDocuments" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white">Пользовательское соглашение</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Заголовок</label>
+                    <input type="text" name="termsTitle" class="form-control" value="@ViewBag.TermsTitle" />
+                </div>
+                <div>
+                    <label class="form-label">Текст</label>
+                    <textarea name="termsContent" rows="10" class="form-control">@ViewBag.TermsContent</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white">Политика обработки ПДн</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Заголовок</label>
+                    <input type="text" name="privacyTitle" class="form-control" value="@ViewBag.PrivacyTitle" />
+                </div>
+                <div>
+                    <label class="form-label">Текст</label>
+                    <textarea name="privacyContent" rows="10" class="form-control">@ViewBag.PrivacyContent</textarea>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+    </form>
+</div>

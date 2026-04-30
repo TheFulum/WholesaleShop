@@ -19,13 +19,13 @@ html {
 
 
 
-/* Основные стили */
+/*   */
 .navbar {
     border-bottom: 1px solid rgba(255,255,255,0.1);
     background-color: #1a1a1a !important;
 }
 
-/* Общие стили кнопок */
+/*    */
 .nav-btn {
     display: inline-flex;
     align-items: center;
@@ -45,12 +45,12 @@ html {
     margin-left: 0.5rem;
 }
 
-/* Стили иконок */
+/*   */
 .nav-btn i {
     font-size: 1.1rem;
 }
 
-/* Стиль корзины */
+/*   */
 .cart-btn {
     color: #ffffff;
     background-color: rgba(255,255,255,0.1);
@@ -75,7 +75,7 @@ html {
     font-size: 0.7rem;
 }
 
-/* Стиль личного кабинета */
+/*    */
 .profile-btn {
     color: #74b9ff;
     background-color: rgba(116, 185, 255, 0.1);
@@ -85,7 +85,7 @@ html {
         background-color: rgba(116, 185, 255, 0.2);
     }
 
-/* Стиль админ-панели */
+/*  - */
 .admin-btn {
     color: #fdcb6e;
     background-color: rgba(253, 203, 110, 0.1);
@@ -95,7 +95,7 @@ html {
         background-color: rgba(253, 203, 110, 0.2);
     }
 
-/* Стиль выхода */
+/*   */
 .logout-btn {
     color: #ff7675;
     background-color: rgba(255, 118, 117, 0.1);
@@ -105,7 +105,7 @@ html {
         background-color: rgba(255, 118, 117, 0.2);
     }
 
-/* Стиль входа */
+/*   */
 .login-btn {
     color: #55efc4;
     background-color: rgba(85, 239, 196, 0.1);
@@ -115,7 +115,7 @@ html {
         background-color: rgba(85, 239, 196, 0.2);
     }
 
-/* Стиль регистрации */
+/*   */
 .register-btn {
     color: white;
     background-color: #6c5ce7;
@@ -125,7 +125,7 @@ html {
         background-color: #5649c0;
     }
 
-/* Анимации */
+/*  */
 .nav-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -133,4 +133,87 @@ html {
 
 .navbar-toggler-icon {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+.footer-expanded {
+    background: linear-gradient(180deg, #151515 0%, #101010 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footer-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.9rem;
+}
+
+.footer-text {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.footer-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.footer-list li {
+    margin-bottom: 0.45rem;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.9rem;
+}
+
+.footer-list a {
+    color: rgba(255, 255, 255, 0.78);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.footer-list a:hover {
+    color: #ffffff;
+}
+
+.footer-contact li i {
+    margin-right: 0;
+    line-height: 1;
+}
+
+.footer-contact li {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.footer-contact li span {
+    line-height: 1.25;
+}
+
+.footer-schedule li {
+    display: flex;
+    justify-content: space-between;
+    max-width: 210px;
+}
+
+.footer-schedule li strong {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.footer-mini-links a {
+    color: rgba(255, 255, 255, 0.68);
+    text-decoration: none;
+}
+
+.footer-mini-links a:hover {
+    color: #ffffff;
+}
+
+.footer-mini-links span {
+    color: rgba(255, 255, 255, 0.35);
+    margin: 0 0.4rem;
 }

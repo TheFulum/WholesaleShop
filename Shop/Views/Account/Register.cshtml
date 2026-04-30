@@ -7,7 +7,7 @@
 <div class="d-flex justify-content-center align-items-center vh-100">
     <div class="card p-4 shadow-lg" style="max-width: 500px; width: 100%; border-radius: 10px; margin-top: -200px !important;">
         <h3 class="text-center mb-4">Регистрация</h3>
-        <form asp-action="Register" method="post">
+        <form asp-action="Register" method="post" novalidate>
             <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
 
             <div class="form-group mb-3">
@@ -40,24 +40,24 @@
                 <span asp-validation-for="Email" class="text-danger small"></span>
             </div>
 
-            <div class="form-group mb-4">
-                <label class="form-label fw-semibold">Тип аккаунта</label>
-                <div class="d-flex gap-3">
-                    <div class="form-check flex-fill border rounded p-3" id="retailCard" style="cursor:pointer;">
-                        <input class="form-check-input" type="radio" name="IsWholesale" id="retail" value="false" checked />
-                        <label class="form-check-label w-100" for="retail" style="cursor:pointer;">
-                            <div class="fw-bold">🛒 Розничный</div>
-                            <div class="text-muted small">Обычные цены</div>
-                        </label>
-                    </div>
-                    <div class="form-check flex-fill border rounded p-3" id="wholesaleCard" style="cursor:pointer;">
-                        <input class="form-check-input" type="radio" name="IsWholesale" id="wholesale" value="true" />
-                        <label class="form-check-label w-100" for="wholesale" style="cursor:pointer;">
-                            <div class="fw-bold">📦 Оптовый</div>
-                            <div class="text-muted small">Скидки от количества</div>
-                        </label>
-                    </div>
+            <div class="consent-box mb-2" id="termsConsentBox">
+                <div class="form-check mb-0">
+                    <input asp-for="AcceptedTerms" class="form-check-input" id="AcceptedTerms" />
+                    <label class="form-check-label" for="AcceptedTerms">
+                        Я принимаю <a href="/Home/Terms" target="_blank">пользовательское соглашение</a>
+                    </label>
                 </div>
+                <span asp-validation-for="AcceptedTerms" class="d-none"></span>
+            </div>
+
+            <div class="consent-box mb-4" id="privacyConsentBox">
+                <div class="form-check mb-0">
+                    <input asp-for="AcceptedPersonalDataProcessing" class="form-check-input" id="AcceptedPersonalDataProcessing" />
+                    <label class="form-check-label" for="AcceptedPersonalDataProcessing">
+                        Я согласен(на) на <a href="/Home/PrivacyPolicy" target="_blank">обработку персональных данных</a>
+                    </label>
+                </div>
+                <span asp-validation-for="AcceptedPersonalDataProcessing" class="d-none"></span>
             </div>
 
             <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
@@ -68,6 +68,34 @@
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const form = document.querySelector('form[asp-action="Register"], form[action*="Register"]');
+            const termsCheckbox = document.getElementById("AcceptedTerms");
+            const privacyCheckbox = document.getElementById("AcceptedPersonalDataProcessing");
+            const termsBox = document.getElementById("termsConsentBox");
+            const privacyBox = document.getElementById("privacyConsentBox");
+
+            function updateConsentHighlight() {
+                if (!termsCheckbox.checked) termsBox.classList.add("consent-invalid");
+                else termsBox.classList.remove("consent-invalid");
+
+                if (!privacyCheckbox.checked) privacyBox.classList.add("consent-invalid");
+                else privacyBox.classList.remove("consent-invalid");
+            }
+
+            if (!termsCheckbox.checked) termsBox.classList.add("consent-invalid");
+            if (!privacyCheckbox.checked) privacyBox.classList.add("consent-invalid");
+
+            termsCheckbox.addEventListener("change", updateConsentHighlight);
+            privacyCheckbox.addEventListener("change", updateConsentHighlight);
+
+            form.addEventListener("submit", function (e) {
+                updateConsentHighlight();
+                if (!termsCheckbox.checked || !privacyCheckbox.checked) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+
             // Маска телефона
             document.getElementById("PhoneNumber").addEventListener("input", function () {
                 let value = this.value.replace(/\D/g, "");
@@ -81,29 +109,23 @@
                 this.value = formatted;
             });
 
-            // Подсветка выбранного типа аккаунта
-            const retailCard = document.getElementById('retailCard');
-            const wholesaleCard = document.getElementById('wholesaleCard');
-            const retailRadio = document.getElementById('retail');
-            const wholesaleRadio = document.getElementById('wholesale');
-
-            function updateCards() {
-                if (retailRadio.checked) {
-                    retailCard.classList.add('border-primary', 'bg-light');
-                    wholesaleCard.classList.remove('border-primary', 'bg-light');
-                } else {
-                    wholesaleCard.classList.add('border-primary', 'bg-light');
-                    retailCard.classList.remove('border-primary', 'bg-light');
-                }
-            }
-
-            retailCard.addEventListener('click', () => { retailRadio.checked = true; updateCards(); });
-            wholesaleCard.addEventListener('click', () => { wholesaleRadio.checked = true; updateCards(); });
-            retailRadio.addEventListener('change', updateCards);
-            wholesaleRadio.addEventListener('change', updateCards);
-            updateCards();
         });
     </script>
+
+    <style>
+        .consent-box {
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            padding: 10px 12px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .consent-invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.15rem rgba(220, 53, 69, 0.15);
+            background-color: rgba(220, 53, 69, 0.04);
+        }
+    </style>
 
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
